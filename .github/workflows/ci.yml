@@ -81,7 +81,7 @@ jobs:
     - name: Create Hello World
       timeout-minutes: 2
       run: |
-        cocos new -p MyCocos4PackageName -e ${GITHUB_WORKSPACE}/external/cocos2d-x --portrait -l cpp --ios-bundleid com.crowdstech.cocos2d-ci --mac-bundleid com.crowdstech.cocos2d-ci MyCocos4Proj
+        cocos new -p MyCocos4PackageName -e ${GITHUB_WORKSPACE}/external/cocos2d-x --portrait -l cpp --agreement n --ios-bundleid com.crowdstech.cocos2d-ci --mac-bundleid com.crowdstech.cocos2d-ci MyCocos4Proj
     - name: Build (Linux)
       timeout-minutes: 20
       run: |
