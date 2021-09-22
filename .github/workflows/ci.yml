@@ -1,0 +1,125 @@
+#
+# Copyright (C) 2021 Crowds Technologies LLC. All rights reserved.
+#
+# Distributed under MIT License
+# See: https://github.com/CrowdsTech/cocos2d-x-CI/blob/main/LICENSE
+#
+
+name: CI
+
+on:
+  push:
+    paths:
+    - '.github/workflows/ci.yml'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            host: mac
+            flavor: Release
+            variation: mac
+          - os: macos-latest
+            host: mac
+            flavor: Release
+            variation: ios
+          - os: ubuntu-latest
+            host: linux
+            flavor: Release
+            variation: linux
+          - os: ubuntu-latest
+            host: linux
+            flavor: Release
+            variation: android
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: System Overview
+      timeout-minutes: 1
+      run: |
+        set -x
+        uname -a
+        df -h
+        ulimit -a
+        if [ "${{ matrix.host }}" = "linux" ]; then
+            sudo swapon --show
+            free -h
+        fi
+    - name: Checkout Sources
+      timeout-minutes: 1
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+    - name: Setup Environment Variables
+      timeout-minutes: 1
+      run: |
+        export COCOS_X_ROOT=${GITHUB_WORKSPACE}/external/cocos2d-x
+        export COCOS_CONSOLE_ROOT=${COCOS_X_ROOT}/tools/cocos2d-console/bin
+        export COCOS_TEMPLATES_ROOT=${COCOS_X_ROOT}/templates
+        export JAVA_HOME=${JAVA_HOME_11_X64}
+        # Persist exported variables between steps in GitHub Actions
+        echo "COCOS_X_ROOT=$COCOS_X_ROOT" >> $GITHUB_ENV
+        echo "COCOS_CONSOLE_ROOT=$COCOS_CONSOLE_ROOT" >> $GITHUB_ENV
+        echo "COCOS_TEMPLATES_ROOT=$COCOS_TEMPLATES_ROOT" >> $GITHUB_ENV
+        echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
+        echo "${COCOS_X_ROOT}" >> $GITHUB_PATH
+        echo "${COCOS_CONSOLE_ROOT}" >> $GITHUB_PATH
+        echo "${COCOS_TEMPLATES_ROOT}" >> $GITHUB_PATH
+        set
+    - name: Download Shared Dependencies
+      timeout-minutes: 4
+      run: |
+        git clone https://github.com/cocos2d/cocos2d-x.git -b cocos2d-x-4.0 --depth=1 --single-branch
+        pushd cocos2d-x
+        python download-deps.py --remove-download=yes
+        git submodule update --init
+        popd
+      working-directory: ./external
+    - name: Create Hello World
+      timeout-minutes: 2
+      run: |
+        cocos new -p MyCocos4PackageName -e ${GITHUB_WORKSPACE}/external/cocos2d-x --portrait -l cpp --ios-bundleid com.crowdstech.cocos2d-ci --mac-bundleid com.crowdstech.cocos2d-ci MyCocos4Proj
+    - name: Build (Linux)
+      timeout-minutes: 20
+      run: |
+        pushd ${GITHUB_WORKSPACE}/external/cocos2d-x
+        yes | ./install-deps-linux.sh
+        popd
+        mkdir build-${{ matrix.variation }}
+        pushd build-${{ matrix.variation }}
+        cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.flavor }}
+        make
+        popd
+      working-directory: ./MyCocos4Proj
+      if: matrix.variation == 'linux'
+    - name: Build (Android)
+      timeout-minutes: 40
+      run: |
+        pushd proj.android
+        ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel --info
+        popd
+      working-directory: ./MyCocos4Proj
+      if: matrix.variation == 'android'
+    - name: Build (macOS)
+      timeout-minutes: 20
+      run: |
+        mkdir build-${{ matrix.variation }}
+        pushd build-${{ matrix.variation }}
+        cmake .. -GXcode
+        cmake --build . --config ${{ matrix.flavor }}
+        popd
+      working-directory: ./MyCocos4Proj
+      if: matrix.variation == 'mac'
+    - name: Build (iOS)
+      timeout-minutes: 50
+      run: |
+        mkdir build-${{ matrix.variation }}
+        pushd build-${{ matrix.variation }}
+        cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos
+        cmake --build . --config ${{ matrix.flavor }}
+        popd
+      working-directory: ./MyCocos4Proj
+      if: matrix.variation == 'ios'
