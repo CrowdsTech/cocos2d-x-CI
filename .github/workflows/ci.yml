@@ -17,10 +17,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            host: mac
-            flavor: Release
-            variation: mac
+          # - os: macos-latest
+          #   host: mac
+          #   flavor: Release
+          #   variation: mac
           - os: macos-latest
             host: mac
             flavor: Release
@@ -78,28 +78,42 @@ jobs:
         git submodule update --init
         popd
       working-directory: ./external
+    - name: Install Dependencies (Linux)
+      timeout-minutes: 10
+      run: |
+        # Note: official way fails, so we just copy their cocos2d-x dependencies without lua dependencies below
+        # pushd ${GITHUB_WORKSPACE}/external/cocos2d-x
+        # yes | ./install-deps-linux.sh
+        # popd
+        sudo apt-get update
+        sudo apt-get install --yes libx11-dev libxmu-dev libglu1-mesa-dev libgl2ps-dev libxi-dev libzip-dev libpng-dev libcurl4-gnutls-dev libfontconfig1-dev libsqlite3-dev libglew-dev libssl-dev libgtk-3-dev binutils
+      working-directory: ./external
+      if: matrix.variation == 'linux'
     - name: Create Hello World
       timeout-minutes: 2
       run: |
         cocos new -p MyCocos4PackageName -e ${GITHUB_WORKSPACE}/external/cocos2d-x --portrait -l cpp --agreement n --ios-bundleid com.crowdstech.cocos2d-ci --mac-bundleid com.crowdstech.cocos2d-ci MyCocos4Proj
+        sed -i -e "s/#\(.*\)GRLXXXX2K9/\1${{ secrets.DEVELOPMENT_TEAM }}/g" MyCocos4Proj/CMakeLists.txt
+        grep set_xcode_property MyCocos4Proj/CMakeLists.txt
     - name: Build (Linux)
       timeout-minutes: 20
       run: |
-        pushd ${GITHUB_WORKSPACE}/external/cocos2d-x
-        yes | ./install-deps-linux.sh
-        popd
         mkdir build-${{ matrix.variation }}
         pushd build-${{ matrix.variation }}
         cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.flavor }}
         make
+        ls -alFR
         popd
       working-directory: ./MyCocos4Proj
       if: matrix.variation == 'linux'
     - name: Build (Android)
       timeout-minutes: 40
       run: |
+        sed -i -e "s/gradle-5.1.1-all.zip/gradle-6.7.1-all.zip/g" proj.android/gradle/wrapper/gradle-wrapper.properties
+        sed -i -e "s/com.android.tools.build:gradle:3.1.0/com.android.tools.build:gradle:3.4.2/g" proj.android/build.gradle
         pushd proj.android
         ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel --info
+        ls -alFR
         popd
       working-directory: ./MyCocos4Proj
       if: matrix.variation == 'android'
@@ -110,6 +124,7 @@ jobs:
         pushd build-${{ matrix.variation }}
         cmake .. -GXcode
         cmake --build . --config ${{ matrix.flavor }}
+        ls -alFR
         popd
       working-directory: ./MyCocos4Proj
       if: matrix.variation == 'mac'
@@ -120,6 +135,7 @@ jobs:
         pushd build-${{ matrix.variation }}
         cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos
         cmake --build . --config ${{ matrix.flavor }}
+        ls -alFR
         popd
       working-directory: ./MyCocos4Proj
       if: matrix.variation == 'ios'
