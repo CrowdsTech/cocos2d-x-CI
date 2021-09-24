@@ -17,10 +17,10 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: macos-latest
-          #   host: mac
-          #   flavor: Release
-          #   variation: mac
+          - os: macos-latest
+            host: mac
+            flavor: Release
+            variation: mac
           - os: macos-latest
             host: mac
             flavor: Release
@@ -90,15 +90,14 @@ jobs:
         # yes | ./install-deps-linux.sh
         # popd
         sudo apt-get update
-        sudo apt-get install --yes libx11-dev libxmu-dev libglu1-mesa-dev libgl2ps-dev libxi-dev libzip-dev libpng-dev libcurl4-gnutls-dev libfontconfig1-dev libsqlite3-dev libglew-dev libssl-dev libgtk-3-dev binutils
+        sudo apt-get install --yes libxxf86vm-dev libx11-dev libxmu-dev libglu1-mesa-dev libgl2ps-dev libxi-dev libzip-dev libpng-dev libcurl4-gnutls-dev libfontconfig1-dev libsqlite3-dev libglew-dev libssl-dev libgtk-3-dev binutils
       working-directory: ./external
       if: matrix.variation == 'linux'
     - name: Create Hello World
       timeout-minutes: 2
       run: |
-        cocos new -p MyCocos4PackageName -e ${GITHUB_WORKSPACE}/external/cocos2d-x --portrait -l cpp --agreement n --ios-bundleid com.crowdstech.cocos2d-ci --mac-bundleid com.crowdstech.cocos2d-ci MyCocos4Proj
-        sed -i -e "s/#\(.*\)GRLXXXX2K9/\1${{ secrets.DEVELOPMENT_TEAM }}/g"     MyCocos4Proj/CMakeLists.txt
-        sed -i -e "s/org.cocos2dx.\${PRODUCT_NAME}/com.crowdstech.cocos2d-ci/g" MyCocos4Proj/proj.ios_mac/ios/Info.plist
+        cocos new -p com.crowdstech.cocos2d_ci -e ${GITHUB_WORKSPACE}/external/cocos2d-x --portrait -l cpp --agreement n --ios-bundleid com.crowdstech.cocos2d-ci --mac-bundleid com.crowdstech.cocos2d-ci MyCocos4Proj
+        #sed -i -e "s/#\(.*\)GRLXXXX2K9/\1${{ secrets.DEVELOPMENT_TEAM }}/g"     MyCocos4Proj/CMakeLists.txt
     - name: Build (Linux)
       timeout-minutes: 20
       run: |
@@ -126,7 +125,7 @@ jobs:
       run: |
         mkdir build-${{ matrix.variation }}
         pushd build-${{ matrix.variation }}
-        cmake .. -GXcode
+        cmake .. -GXcode -DCMAKE_XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET=10.12
         cmake --build . --config ${{ matrix.flavor }}
         ls -alFR
         popd
@@ -135,9 +134,12 @@ jobs:
     - name: Build (iOS)
       timeout-minutes: 50
       run: |
+        sed -i -e "s/org.cocos2dx.\${PRODUCT_NAME}/com.crowdstech.cocos2d-ci/g" proj.ios_mac/ios/Info.plist
+        sed -i -e "s/\"\/usr\/lib\/libz.dylib\"/\${ZLIB}/g"                     cocos2d/cmake/Modules/CocosConfigDepend.cmake
+        sed -i -e "s/\"\/usr\/lib\/libiconv.dylib\"/\${ICONVLIB}/g"             cocos2d/cmake/Modules/CocosConfigDepend.cmake
         mkdir build-${{ matrix.variation }}
         pushd build-${{ matrix.variation }}
-        cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DIOS_DEPLOYMENT_SDK_VERSION=9.0
+        cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos  -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="iPhone Developer" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=PuzzwordDevProv -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=9.0
         cmake --build . --config ${{ matrix.flavor }} -- -allowProvisioningUpdates
         ls -alFR
         popd
