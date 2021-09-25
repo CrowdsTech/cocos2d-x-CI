@@ -17,22 +17,22 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
-            host: mac
-            flavor: Release
-            variation: mac
+          # - os: macos-latest
+          #   host: mac
+          #   flavor: Release
+          #   variation: mac
           - os: macos-latest
             host: mac
             flavor: Release
             variation: ios
-          - os: ubuntu-latest
-            host: linux
-            flavor: Release
-            variation: linux
-          - os: ubuntu-latest
-            host: linux
-            flavor: Release
-            variation: android
+          # - os: ubuntu-latest
+          #   host: linux
+          #   flavor: Release
+          #   variation: linux
+          # - os: ubuntu-latest
+          #   host: linux
+          #   flavor: Release
+          #   variation: android
       fail-fast: false
     runs-on: ${{ matrix.os }}
 
@@ -44,7 +44,7 @@ jobs:
         uname -a
         df -h
         ulimit -a
-        if [ "${{ matrix.host }}" = "linux" ]; then
+        if [ "${{ matrix.host }}" == "linux" ]; then
             sudo swapon --show
             free -h
         fi
@@ -103,7 +103,7 @@ jobs:
       working-directory: ./MyCocos4Proj
       timeout-minutes: 20
       run: |
-        if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             # Workaround for linker error that appeared the moment GitHub runners for
             # linux moved from Ubuntu 18.04.5 to Ubuntu 20.04.2 for ubuntu-latest
             # See: https://github.com/cocos2d/cocos2d-x/issues/20471
@@ -176,7 +176,7 @@ jobs:
       timeout-minutes: 30
       run: |
         sed -i -e "s/org.cocos2dx.\${PRODUCT_NAME}/com.crowdstech.cocos2d-ci/g" proj.ios_mac/ios/Info.plist
-        sed -i -e "s/Locate system libraries on iOS/Locate system libraries on iOS\\nfind_library(ICONV_LIBRARY iconv)\\nfind_library(Z_LIBRARY z)/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
+        sed -i -e "s/Locate system libraries on iOS/Locate system libraries on iOS\nfind_library(ICONV_LIBRARY iconv)\nfind_library(Z_LIBRARY z)/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
         sed -i -e "s/\"\/usr\/lib\/libz.dylib\"/\${Z_LIBRARY}/g"         cocos2d/cmake/Modules/CocosConfigDepend.cmake
         sed -i -e "s/\"\/usr\/lib\/libiconv.dylib\"/\${ICONV_LIBRARY}/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
         cat cocos2d/cmake/Modules/CocosConfigDepend.cmake
