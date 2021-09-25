@@ -176,9 +176,10 @@ jobs:
       timeout-minutes: 30
       run: |
         sed -i -e "s/org.cocos2dx.\${PRODUCT_NAME}/com.crowdstech.cocos2d-ci/g" proj.ios_mac/ios/Info.plist
-        sed -i -e "s/Locate system libraries on iOS/Locate system libraries on iOS\nfind_library(ICONV_LIBRARY iconv)\nfind_library(Z_LIBRARY z)/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
+        sed -i -e "s/Locate system libraries on iOS/Locate system libraries on iOS\\nfind_library(ICONV_LIBRARY iconv)\\nfind_library(Z_LIBRARY z)/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
         sed -i -e "s/\"\/usr\/lib\/libz.dylib\"/\${Z_LIBRARY}/g"         cocos2d/cmake/Modules/CocosConfigDepend.cmake
         sed -i -e "s/\"\/usr\/lib\/libiconv.dylib\"/\${ICONV_LIBRARY}/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
+        cat cocos2d/cmake/Modules/CocosConfigDepend.cmake
         mkdir build-${{ matrix.variation }}
         pushd build-${{ matrix.variation }}
         cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos  -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="iPhone Developer" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=Cocos2dCIDevPro -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=9.0
