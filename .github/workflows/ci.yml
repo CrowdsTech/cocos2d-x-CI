@@ -25,10 +25,10 @@ jobs:
             host: mac
             flavor: Release
             variation: ios
-          # - os: ubuntu-latest
-          #   host: linux
-          #   flavor: Release
-          #   variation: linux
+          - os: ubuntu-latest
+            host: linux
+            flavor: Release
+            variation: linux
           # - os: ubuntu-latest
           #   host: linux
           #   flavor: Release
@@ -53,6 +53,14 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 1
+    - name: GitHub Actions Bug Repro
+      run: |
+        echo "Hello World" | sed -e "s/ /\n/g"
+        echo "Hello World" | sed -e "s/ /\\n/g"
+        echo "Hello World" | sed -e "s/ /\\\\n/g"
+        echo "Hello World" | sed -e "s/ /\x0A/g"
+        echo "Hello World" | sed -e "s/ /\\x0A/g"
+        echo "Hello World" | sed -e "s/ /\\\\x0A/g"
     - name: Setup Python
       uses: actions/setup-python@v2
       with:
@@ -97,7 +105,8 @@ jobs:
       timeout-minutes: 2
       run: |
         cocos new -p com.crowdstech.cocos2d_ci -e ${GITHUB_WORKSPACE}/external/cocos2d-x --portrait -l cpp --agreement n --ios-bundleid com.crowdstech.cocos2d-ci --mac-bundleid com.crowdstech.cocos2d-ci MyCocos4Proj
-        #sed -i -e "s/#\(.*\)GRLXXXX2K9/\1${{ secrets.DEVELOPMENT_TEAM }}/g"     MyCocos4Proj/CMakeLists.txt
+        sed -i -e "s/Locate system libraries on iOS/Locate \x0A system \\x0A libraries \\\\x0A on iOS\\\\nfind_library(ICONV_LIBRARY iconv)\\nfind_library(Z_LIBRARY z)\n/g" MyCocos4Proj/cocos2d/cmake/Modules/CocosConfigDepend.cmake
+        cat MyCocos4Proj/cocos2d/cmake/Modules/CocosConfigDepend.cmake
     - name: Build (Linux)
       if: matrix.variation == 'linux'
       working-directory: ./MyCocos4Proj
@@ -176,10 +185,8 @@ jobs:
       timeout-minutes: 30
       run: |
         sed -i -e "s/org.cocos2dx.\${PRODUCT_NAME}/com.crowdstech.cocos2d-ci/g" proj.ios_mac/ios/Info.plist
-        sed -i -e "s/Locate system libraries on iOS/Locate \x0A system \\x0A libraries on iOS\\\\nfind_library(ICONV_LIBRARY iconv)\\nfind_library(Z_LIBRARY z)\n/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
         sed -i -e "s/\"\/usr\/lib\/libz.dylib\"/\${Z_LIBRARY}/g"         cocos2d/cmake/Modules/CocosConfigDepend.cmake
         sed -i -e "s/\"\/usr\/lib\/libiconv.dylib\"/\${ICONV_LIBRARY}/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
-        cat cocos2d/cmake/Modules/CocosConfigDepend.cmake
         mkdir build-${{ matrix.variation }}
         pushd build-${{ matrix.variation }}
         cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos  -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="iPhone Developer" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=Cocos2dCIDevPro -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=9.0
