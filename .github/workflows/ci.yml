@@ -76,7 +76,8 @@ jobs:
     - name: Download Shared Dependencies
       timeout-minutes: 4
       run: |
-        git clone https://github.com/cocos2d/cocos2d-x.git -b cocos2d-x-4.0 --depth=1 --single-branch
+        # If building tip of the v4 branch fails, try the latest tag 'cocos2d-x-4.0' this workflow handles instead
+        git clone https://github.com/cocos2d/cocos2d-x.git -b v4 --depth=1 --single-branch
         pushd cocos2d-x
         python download-deps.py --remove-download=yes
         git submodule update --init
