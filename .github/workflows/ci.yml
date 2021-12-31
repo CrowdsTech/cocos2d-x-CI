@@ -17,18 +17,18 @@ jobs:
     strategy:
       matrix:
         include:
-          # - os: macos-latest
-          #   host: mac
-          #   flavor: Release
-          #   variation: mac
-          # - os: macos-latest
-          #   host: mac
-          #   flavor: Release
-          #   variation: ios
-          # - os: ubuntu-latest
-          #   host: linux
-          #   flavor: Release
-          #   variation: linux
+          - os: macos-latest
+            host: mac
+            flavor: Release
+            variation: mac
+          - os: macos-latest
+            host: mac
+            flavor: Release
+            variation: ios
+          - os: ubuntu-latest
+            host: linux
+            flavor: Release
+            variation: linux
           - os: ubuntu-latest
             host: linux
             flavor: Release
