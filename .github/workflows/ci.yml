@@ -50,6 +50,8 @@ jobs:
         elif [ "${{ matrix.host }}" == "mac" ]; then
             sysctl -a -h
         fi
+    - name: Fix up git URLs as in https://github.com/cocos2d/cocos2d-x/pull/20726#issuecomment-1169406884
+      run: git config --global url.https://github.com/.insteadOf git://github.com/
     - name: Checkout Sources
       timeout-minutes: 1
       uses: actions/checkout@v2
@@ -81,8 +83,8 @@ jobs:
         # If building tip of the v4 branch fails, try the latest tag 'cocos2d-x-4.0' this workflow handles instead
         git clone https://github.com/cocos2d/cocos2d-x.git -b v4 --depth=1 --single-branch
         pushd cocos2d-x
-        python download-deps.py --remove-download=yes
-        git submodule update --init
+        python download-deps.py --remove-download=no
+        git submodule update --init --recursive
         popd
       working-directory: ./external
     - name: Install Dependencies (Linux)
@@ -91,11 +93,11 @@ jobs:
       timeout-minutes: 10
       run: |
         # Note: official way fails, so we just copy their cocos2d-x dependencies without lua dependencies below
-        # pushd ${GITHUB_WORKSPACE}/external/cocos2d-x
-        # yes | ./install-deps-linux.sh
-        # popd
-        sudo apt-get update
-        sudo apt-get install --yes libxxf86vm-dev libx11-dev libxmu-dev libglu1-mesa-dev libgl2ps-dev libxi-dev libzip-dev libpng-dev libcurl4-gnutls-dev libfontconfig1-dev libsqlite3-dev libglew-dev libssl-dev libgtk-3-dev binutils
+        pushd ${GITHUB_WORKSPACE}/external/cocos2d-x
+        echo -e "y" | bash install-deps-linux.sh
+        popd
+        # sudo apt-get update
+        # sudo apt-get install --yes libxxf86vm-dev libx11-dev libxmu-dev libglu1-mesa-dev libgl2ps-dev libxi-dev libzip-dev libpng-dev libcurl4-gnutls-dev libfontconfig1-dev libsqlite3-dev libglew-dev libssl-dev libgtk-3-dev binutils
     - name: Create Hello World
       timeout-minutes: 2
       run: |
@@ -115,8 +117,8 @@ jobs:
         fi
         mkdir build-${{ matrix.variation }}
         pushd build-${{ matrix.variation }}
-        cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.flavor }}
-        make
+        cmake -B b -S ..
+        cmake --build b
         ls -alFR
         popd
     - name: Build (Android)
