@@ -47,6 +47,8 @@ jobs:
         if [ "${{ matrix.host }}" == "linux" ]; then
             sudo swapon --show
             free -h
+        elif [ "${{ matrix.host }}" == "mac" ]; then
+            sysctl -a -h
         fi
     - name: Checkout Sources
       timeout-minutes: 1
