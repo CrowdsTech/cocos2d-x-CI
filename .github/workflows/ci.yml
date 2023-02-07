@@ -25,6 +25,10 @@ jobs:
             host: mac
             flavor: Release
             variation: ios
+          - os: macos-latest
+            host: mac
+            flavor: Release
+            variation: sim
           - os: ubuntu-latest
             host: linux
             flavor: Release
@@ -92,11 +96,10 @@ jobs:
       working-directory: ./external
       timeout-minutes: 10
       run: |
-        sudo apt-get update
-        sudo apt-get install --yes libxxf86vm-dev
         pushd ${GITHUB_WORKSPACE}/external/cocos2d-x
         echo -e "y" | bash install-deps-linux.sh
         popd
+        sudo apt-get install --yes libxxf86vm-dev
     - name: Create Hello World
       timeout-minutes: 2
       run: |
@@ -125,14 +128,16 @@ jobs:
       working-directory: ./MyCocos4Proj
       timeout-minutes: 20
       run: |
+        echo ndk.dir=$ANDROID_NDK_ROOT >> proj.android/local.properties
+        echo sdk.dir=$ANDROID_SDK_ROOT >> proj.android/local.properties
         sed -i -e "s/gradle-5.1.1-all.zip/gradle-6.7.1-all.zip/g" proj.android/gradle/wrapper/gradle-wrapper.properties
-        sed -i -e "s/com.android.tools.build:gradle:3.1.0/com.android.tools.build:gradle:3.4.2/g" proj.android/build.gradle
+        sed -i -e "s/com.android.tools.build:gradle:3.1.0/com.android.tools.build:gradle:4.1.1/g" proj.android/build.gradle
         sed -i -e "s/cppFlags/version \"3.10.2\"\n                cppFlags/g" proj.android/app/build.gradle
         cat proj.android/app/build.gradle
         # Note: the above version doesn't work for some reason, so just manually change cmake 3.6 to 3.10 requirement in all cocos
         find . -name CMakeLists.txt | xargs sed -i -e "s/cmake_minimum_required(VERSION 3.6)/cmake_minimum_required(VERSION 3.10)/g"
         pushd proj.android
-        ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel --info --warning-mode all
+        ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel
         ls -alFR
         popd
     - name: Build (macOS)
@@ -177,22 +182,38 @@ jobs:
         # apply provisioning profile
         mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
         cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-    - name: Build (iOS)
-      if: matrix.variation == 'ios'
+    - name: Patch sources (iOS and iPhoneSimulator)
+      if: matrix.variation == 'ios' || matrix.variation == 'sim'
       working-directory: ./MyCocos4Proj
-      timeout-minutes: 30
+      timeout-minutes: 2
       run: |
         sed -i -e "s/org.cocos2dx.\${PRODUCT_NAME}/com.crowdstech.cocos2d-ci/g" proj.ios_mac/ios/Info.plist
         sed -i -e "s/\"\/usr\/lib\/libz.dylib\"/\${Z_LIBRARY}/g"         cocos2d/cmake/Modules/CocosConfigDepend.cmake
         sed -i -e "s/\"\/usr\/lib\/libiconv.dylib\"/\${ICONV_LIBRARY}/g" cocos2d/cmake/Modules/CocosConfigDepend.cmake
         # We use bash \n substitution below because of OS X problem described in https://superuser.com/questions/307165/newlines-in-sed-on-mac-os-x
         sed -i -e $'s/Locate system libraries on iOS/Locate system libraries on iOS\\\nfind_library(ICONV_LIBRARY iconv)\\\nfind_library(Z_LIBRARY z)/g' cocos2d/cmake/Modules/CocosConfigDepend.cmake
+    - name: Build (iOS)
+      if: matrix.variation == 'ios'
+      working-directory: ./MyCocos4Proj
+      timeout-minutes: 30
+      run: |
         mkdir build-${{ matrix.variation }}
         pushd build-${{ matrix.variation }}
-        cmake -B b -S .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0
-        cmake --build b --config ${{ matrix.flavor }} -- -quiet
+        cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0
+        cmake --build . --config ${{ matrix.flavor }} -- -quiet
         #cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos  -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="iPhone Developer" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=Cocos2dCIDevPro -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0
         #cmake --build . --config ${{ matrix.flavor }} -- -allowProvisioningUpdates
+        ls -alFR
+        popd
+    - name: Build (iPhoneSimulator)
+      if: matrix.variation == 'sim'
+      working-directory: ./MyCocos4Proj
+      timeout-minutes: 30
+      run: |
+        mkdir build-${{ matrix.variation }}
+        pushd build-${{ matrix.variation }}
+        cmake -B b -S .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0 -DCMAKE_XCODE_ATTRIBUTE_EXCLUDED_ARCHS=arm64
+        cmake --build b --config ${{ matrix.flavor }} -- -quiet
         ls -alFR
         popd
     - name: Clean up keychain and provisioning profile (iOS)
