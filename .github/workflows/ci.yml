@@ -17,26 +17,26 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-latest
+          - variation: mac
+            os: macos-latest
             host: mac
             flavor: Release
-            variation: mac
-          - os: macos-latest
+          - variation: ios
+            os: macos-latest
+            host: mac
+            flavor: Debug
+          - variation: sim
+            os: macos-latest
             host: mac
             flavor: Release
-            variation: ios
-          - os: macos-latest
-            host: mac
-            flavor: Release
-            variation: sim
-          - os: ubuntu-latest
+          - variation: linux
+            os: ubuntu-latest
             host: linux
             flavor: Release
-            variation: linux
-          - os: ubuntu-latest
+          - variation: android
+            os: ubuntu-latest
             host: linux
             flavor: Release
-            variation: android
       fail-fast: false
     runs-on: ${{ matrix.os }}
 
@@ -117,12 +117,9 @@ jobs:
             unzip libchipmunk7.0.1.zip
             mv libchipmunk.* cocos2d/external/chipmunk/prebuilt/linux/64-bit/
         fi
-        mkdir build-${{ matrix.variation }}
-        pushd build-${{ matrix.variation }}
-        cmake -B b -S ..
-        cmake --build . --config ${{ matrix.flavor }} -- -quiet
-        ls -alFR
-        popd
+        cmake -S . -B build-${{ matrix.variation }}
+        cmake --build build-${{ matrix.variation }} --config ${{ matrix.flavor }} -- -quiet
+        ls -alFR build-${{ matrix.variation }}
     - name: Build (Android)
       if: matrix.variation == 'android'
       working-directory: ./MyCocos4Proj
@@ -130,8 +127,8 @@ jobs:
       run: |
         echo ndk.dir=$ANDROID_NDK_ROOT >> proj.android/local.properties
         echo sdk.dir=$ANDROID_SDK_ROOT >> proj.android/local.properties
-        sed -i -e "s/gradle-5.1.1-all.zip/gradle-6.7.1-all.zip/g" proj.android/gradle/wrapper/gradle-wrapper.properties
-        sed -i -e "s/com.android.tools.build:gradle:3.1.0/com.android.tools.build:gradle:4.1.1/g" proj.android/build.gradle
+        sed -i -e "s/gradle-5.1.1-all.zip/gradle-7.6-all.zip/g" proj.android/gradle/wrapper/gradle-wrapper.properties
+        sed -i -e "s/com.android.tools.build:gradle:3.1.0/com.android.tools.build:gradle:7.0.4/g" proj.android/build.gradle
         sed -i -e "s/cppFlags/version \"3.10.2\"\n                cppFlags/g" proj.android/app/build.gradle
         cat proj.android/app/build.gradle
         # Note: the above version doesn't work for some reason, so just manually change cmake 3.6 to 3.10 requirement in all cocos
@@ -145,12 +142,9 @@ jobs:
       working-directory: ./MyCocos4Proj
       timeout-minutes: 20
       run: |
-        mkdir build-${{ matrix.variation }}
-        pushd build-${{ matrix.variation }}
-        cmake .. -GXcode -DCMAKE_XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET=10.12
-        cmake --build . --config ${{ matrix.flavor }} -- -quiet
-        ls -alFR
-        popd
+        cmake -S . -B build-${{ matrix.variation }} -GXcode -DCMAKE_XCODE_ATTRIBUTE_MACOSX_DEPLOYMENT_TARGET=10.12
+        cmake --build build-${{ matrix.variation }} --config ${{ matrix.flavor }} -- -quiet
+        ls -alFR build-${{ matrix.variation }}
     - name: Install the Apple certificate and provisioning profile (iOS)
       if: matrix.variation == 'ios'
       env:
@@ -197,25 +191,19 @@ jobs:
       working-directory: ./MyCocos4Proj
       timeout-minutes: 30
       run: |
-        mkdir build-${{ matrix.variation }}
-        pushd build-${{ matrix.variation }}
-        cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0
-        cmake --build . --config ${{ matrix.flavor }} -- -quiet
-        #cmake .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos  -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="iPhone Developer" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=Cocos2dCIDevPro -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0
-        #cmake --build . --config ${{ matrix.flavor }} -- -allowProvisioningUpdates
-        ls -alFR
-        popd
+        cmake -S . -B build-${{ matrix.variation }} -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0
+        cmake --build build-${{ matrix.variation }} --config ${{ matrix.flavor }} -- -quiet
+        #cmake -S . -B build-${{ matrix.variation }} -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos  -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="iPhone Developer" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=Cocos2dCIDevPro -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0
+        #cmake --build build-${{ matrix.variation }} --config ${{ matrix.flavor }} -- -allowProvisioningUpdates
+        ls -alFR build-${{ matrix.variation }}
     - name: Build (iPhoneSimulator)
       if: matrix.variation == 'sim'
       working-directory: ./MyCocos4Proj
       timeout-minutes: 30
       run: |
-        mkdir build-${{ matrix.variation }}
-        pushd build-${{ matrix.variation }}
-        cmake -B b -S .. -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0 -DCMAKE_XCODE_ATTRIBUTE_EXCLUDED_ARCHS=arm64
-        cmake --build b --config ${{ matrix.flavor }} -- -quiet
-        ls -alFR
-        popd
+        cmake -S . -B build-${{ matrix.variation }} -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0 -DCMAKE_XCODE_ATTRIBUTE_EXCLUDED_ARCHS=arm64
+        cmake --build build-${{ matrix.variation }} --config ${{ matrix.flavor }} -- -quiet
+        ls -alFR build-${{ matrix.variation }}
     - name: Clean up keychain and provisioning profile (iOS)
       if: matrix.variation == 'ios' && always()
       run: |
