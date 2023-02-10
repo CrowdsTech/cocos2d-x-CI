@@ -131,11 +131,11 @@ jobs:
         sed -i -e "s/com.android.tools.build:gradle:3.1.0/com.android.tools.build:gradle:7.4.0/g" proj.android/build.gradle
         sed -i -e "s/28/31/g" proj.android/gradle.properties
         sed -i -e "s/cppFlags/version \"3.10.2\"\n                cppFlags/g" proj.android/app/build.gradle
-        cat proj.android/app/build.gradle
+        cat proj.android/build.gradle
         # Note: the above version doesn't work for some reason, so just manually change cmake 3.6 to 3.10 requirement in all cocos
         find . -name CMakeLists.txt | xargs sed -i -e "s/cmake_minimum_required(VERSION 3.6)/cmake_minimum_required(VERSION 3.10)/g"
         pushd proj.android
-        ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel
+        ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel --info
         ls -alFR
         popd
     - name: Build (macOS)
@@ -196,7 +196,7 @@ jobs:
             cmake -S . -B build-${{ matrix.variation }} -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED=NO -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO
             cmake --build build-${{ matrix.variation }} --config ${{ matrix.flavor }} -- -quiet
         else
-            cmake -S . -B build-${{ matrix.variation }} -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="Apple Distribution" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=Cocos2dCIDistProv
+            cmake -S . -B build-${{ matrix.variation }} -GXcode -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET=11.0 -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="Apple Distribution: Crowds Technologies LLC (${{ secrets.DEVELOPMENT_TEAM }})" -DCMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM=${{ secrets.DEVELOPMENT_TEAM }} -DCMAKE_XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER=Cocos2dCIDistProv
             cmake --build build-${{ matrix.variation }} --config ${{ matrix.flavor }} -- -allowProvisioningUpdates
         fi
         ls -alFR build-${{ matrix.variation }}
