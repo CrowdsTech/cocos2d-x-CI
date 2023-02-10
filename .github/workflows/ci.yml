@@ -127,15 +127,15 @@ jobs:
       run: |
         echo ndk.dir=$ANDROID_NDK_ROOT >> proj.android/local.properties
         echo sdk.dir=$ANDROID_SDK_ROOT >> proj.android/local.properties
-        sed -i -e "s/gradle-5.1.1-all.zip/gradle-7.5.1-bin.zip/g" proj.android/gradle/wrapper/gradle-wrapper.properties
-        sed -i -e "s/com.android.tools.build:gradle:3.1.0/com.android.tools.build:gradle:7.4.0/g" proj.android/build.gradle
-        sed -i -e "s/28/31/g" proj.android/gradle.properties
+        sed -i -e "s/gradle-.*-all.zip/gradle-7.6-bin.zip/g" proj.android/gradle/wrapper/gradle-wrapper.properties
+        sed -i -e "s/com.android.tools.build:gradle:...../com.android.tools.build:gradle:7.4.1/g" proj.android/build.gradle
         sed -i -e "s/cppFlags/version \"3.10.2\"\n                cppFlags/g" proj.android/app/build.gradle
         cat proj.android/build.gradle
+        cat proj.android/app/build.gradle
         # Note: the above version doesn't work for some reason, so just manually change cmake 3.6 to 3.10 requirement in all cocos
         find . -name CMakeLists.txt | xargs sed -i -e "s/cmake_minimum_required(VERSION 3.6)/cmake_minimum_required(VERSION 3.10)/g"
         pushd proj.android
-        ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel --info
+        ./gradlew assembleRelease -PPROP_BUILD_TYPE=cmake --parallel
         ls -alFR
         popd
     - name: Build (macOS)
